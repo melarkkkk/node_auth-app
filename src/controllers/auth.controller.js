@@ -103,7 +103,7 @@ const login = async (req, res) => {
     throw ApiError.badRequest('User not found');
   }
 
-  const isPasswordValid = bcrypt.compare(password, user.password);
+  const isPasswordValid = await bcrypt.compare(password, user.password);
 
   if (!isPasswordValid) {
     throw ApiError.badRequest('Wrong password');

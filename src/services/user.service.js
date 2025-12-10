@@ -15,11 +15,11 @@ function normalize({ id, email }) {
   return { id, email };
 }
 
-async function findByEmail({ email }) {
-  return User.findOne({ where: email });
+async function findByEmail(email) {
+  return User.findOne({ where: { email } });
 }
 
-async function register(email, password) {
+async function register(name, email, password) {
   const activationToken = uuidv4();
 
   const existUser = await findByEmail(email);
@@ -30,7 +30,7 @@ async function register(email, password) {
     });
   }
 
-  await User.create({ email, password, activationToken });
+  await User.create({ name, email, password, activationToken });
 
   await emailService.sendActivationEmail(email, activationToken);
 }
