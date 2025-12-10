@@ -2,11 +2,11 @@ import { ApiError } from '../exeptions/api.error.js';
 import { jwtService } from '../services/jwt.service.js';
 
 export const authMiddleware = function (req, res, next) {
-  const autorization = req.headers['autorization'] || '';
+  const authorization = req.headers['authorization'] || '';
 
-  const [, token] = autorization.split(' ');
+  const [, token] = authorization.split(' ');
 
-  if (!autorization || !token) {
+  if (!authorization || !token) {
     throw ApiError.unauthorized();
   }
 
@@ -18,3 +18,4 @@ export const authMiddleware = function (req, res, next) {
 
   next();
 };
+
