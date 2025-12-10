@@ -62,19 +62,19 @@ const validatePassword = (password) => {
 };
 
 const register = async (req, res) => {
-  const { email, password } = req.body;
+  const { name, email, password } = req.body;
   const errors = {
     email: validateEmail(email),
     password: validatePassword(password),
   };
 
-  if (errors.email || errors.password) {
+  if (errors.email || errors.password || !name) {
     throw ApiError.badRequest('Bad request', errors);
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  await userService.register(email, hashedPassword);
+  await userService.register(name, email, hashedPassword);
   res.status(201).json({ message: 'OK' });
 };
 
