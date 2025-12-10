@@ -5,6 +5,8 @@ import { ApiError } from '../exeptions/api.error.js';
 import bcrypt from 'bcrypt';
 import { tokenService } from '../services/token.service.js';
 import { sendEmail } from '../utils/email.js';
+// eslint-disable-next-line no-shadow
+import crypto from 'crypto';
 
 const validateEmail = (email) => {
   if (!email || typeof email !== 'string') {
@@ -116,7 +118,7 @@ const login = async (req, res) => {
     throw ApiError.badRequest('Wrong password');
   }
 
-  generateTokens(res, user);
+  return generateTokens(res, user);
 };
 
 const refresh = async (req, res) => {
@@ -161,7 +163,9 @@ const logout = async (req, res) => {
 
   await tokenService.remove(user.id);
 
-  return res.status(204);
+  res.clearCookie('refreshToken');
+
+  return res.sendStatus(204);
 };
 
 const requestResetPassword = async (req, res) => {
@@ -195,7 +199,7 @@ const resetPassword = async (req, res) => {
   const user = await User.findOne({ where: { resetToken: token } });
 
   if (!user || Date.now() > user.resetTokenExpire) {
-      throw ApiError.badRequest('Invalid or expired token');
+    throw ApiError.badRequest('Invalid or expired token');
   }
 
   user.password = await bcrypt.hash(password, 10);
