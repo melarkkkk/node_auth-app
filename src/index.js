@@ -5,6 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import { router as authRouter } from './routes/auth.route.js';
 import { router as userRouter } from './routes/user.route.js';
+import { router as profileRouter } from './routes/profile.route.js';
 import { errorMiddleware } from './middlewares/errorMiddleware.js';
 import cookieParser from 'cookie-parser';
 
@@ -20,8 +21,17 @@ app.use(
     credentials: true,
   }),
 );
+
 app.use(authRouter);
 app.use('/users', userRouter);
+app.use(profileRouter);
+
+app.use((req, res, next) => {
+  const error = new Error('Not Found');
+
+  error.status = 404;
+  next(error);
+});
 app.use(errorMiddleware);
 
 app.listen(PORT, () => {

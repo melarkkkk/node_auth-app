@@ -4,6 +4,7 @@ import { jwtService } from '../services/jwt.service.js';
 import { ApiError } from '../exeptions/api.error.js';
 import bcrypt from 'bcrypt';
 import { tokenService } from '../services/token.service.js';
+import { sendEmail } from '../utils/email.js';
 
 const validateEmail = (email) => {
   if (!email || typeof email !== 'string') {
@@ -89,9 +90,9 @@ const activate = async (req, res) => {
   }
 
   user.activationToken = null;
-  user.save();
+  await user.save();
 
-  return res.status(200).json(user);
+  return res.redirect(`${process.env.CLIENT_HOST}/profile`);
 };
 
 const login = async (req, res) => {
@@ -101,6 +102,12 @@ const login = async (req, res) => {
 
   if (!user) {
     throw ApiError.badRequest('User not found');
+  }
+
+  const isActivated = user.activationToken === null;
+
+  if (!isActivated) {
+    throw ApiError.badRequest('User not activated');
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -154,7 +161,49 @@ const logout = async (req, res) => {
 
   await tokenService.remove(user.id);
 
-  return res.status(200);
+  return res.status(204);
+};
+
+const requestResetPassword = async (req, res) => {
+  const { email } = req.body;
+  const user = await userService.findByEmail(email);
+
+  if (!user) {
+    return res.status(200).json({ message: 'Email sent' });
+  }
+
+  user.resetToken = crypto.randomBytes(32).toString('hex');
+  user.resetTokenExpire = Date.now() + 3600_000; // 1h
+  await user.save();
+
+  await sendEmail(
+    email,
+    'Reset password',
+    `${process.env.CLIENT_HOST}/reset/${user.resetToken}`,
+  );
+  res.json({ message: 'Email sent' });
+};
+
+const resetPassword = async (req, res) => {
+  const { token } = req.params;
+  const { password, confirm } = req.body;
+
+  if (password !== confirm) {
+    throw ApiError.badRequest('Passwords do not match');
+  }
+
+  const user = await User.findOne({ where: { resetToken: token } });
+
+  if (!user || Date.now() > user.resetTokenExpire) {
+      throw ApiError.badRequest('Invalid or expired token');
+  }
+
+  user.password = await bcrypt.hash(password, 10);
+  user.resetToken = null;
+  user.resetTokenExpire = null;
+  await user.save();
+
+  res.json({ message: 'Password updated' });
 };
 
 export const authController = {
@@ -163,4 +212,6 @@ export const authController = {
   login,
   refresh,
   logout,
+  requestResetPassword,
+  resetPassword,
 };
